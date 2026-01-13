@@ -1,0 +1,3 @@
+[submodule "Source/ThirdParty/sentencepiece_src"]
+	path = Source/ThirdParty/sentencepiece_src
+	url = https://github.com/google/sentencepiece
