@@ -14,10 +14,11 @@ mkdir -p "$INSTALL_DIR"
 
 cd "$BUILD_DIR"
 
-# CMake
+# CMake Generation
 cmake "$SOURCE_DIR" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
+    -DCMAKE_OSX_DEPLOYMENT_TARGET="14.0" \
     -DCMAKE_CXX_FLAGS="-fPIC" \
     -DSPM_ENABLE_SHARED=OFF \
     -DSPM_USE_BUILTIN_PROTOBUF=ON \
