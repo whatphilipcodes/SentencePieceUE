@@ -15,8 +15,6 @@ mkdir -p "$INSTALL_DIR"
 cd "$BUILD_DIR"
 
 # CMake
-# CMAKE_OSX_ARCHITECTURES="x86_64;arm64" creates a Universal Binary (Fat library)
-# This works on both Intel Macs and Apple Silicon
 cmake "$SOURCE_DIR" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
