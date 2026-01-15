@@ -18,7 +18,7 @@ REM We disable Shared libs to get a static .lib.
 REM We enable builtin protobuf to avoid external dependencies.
 cd "%BUILD_DIR%"
 cmake "%SOURCE_DIR%" ^
-    -G "Visual Studio 17 2022" ^
+    -G "Visual Studio 18 2026" ^
     -A x64 ^
     -DCMAKE_CXX_FLAGS_RELEASE="/MD /O2" ^
     -DCMAKE_CXX_FLAGS_DEBUG="/MDd /Zi" ^
