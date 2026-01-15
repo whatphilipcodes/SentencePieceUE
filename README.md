@@ -13,7 +13,7 @@ supported platforms:
    ```
 - Windows
    ```sh
-   to-do
+   scoop install main/cmake
    ```
 
 ### Installation
@@ -29,4 +29,8 @@ supported platforms:
          ./Build_Mac.sh
          ```
    2. Windows
+      1. Run the `Build_Windows.bat` file
+      ```sh
+      ./Source/ThirdParty/BuildScripts/Build_Windows.bat
+      ```
 2. 
