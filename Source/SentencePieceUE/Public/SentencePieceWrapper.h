@@ -13,9 +13,9 @@ class SENTENCEPIECEUE_API USentencePieceWrapper : public UObject
     GENERATED_BODY()
 
 public:
-    // Load the model from a file path
+    // Load from Asset
     UFUNCTION(BlueprintCallable, Category = "SentencePiece")
-    bool LoadModel(const FString &ModelPath);
+    bool LoadFromAsset(USentencePieceModel* ModelAsset);
 
     // Tokenize text into IDs
     UFUNCTION(BlueprintCallable, Category = "SentencePiece")

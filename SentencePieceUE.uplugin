@@ -10,8 +10,12 @@
 		{
 			"Name": "SentencePieceUE",
 			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"PlatformAllowList": [ "Win64", "Mac" ]
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "SentencePieceUEEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
 		}
 	]
 }

@@ -8,38 +8,44 @@ THIRD_PARTY_INCLUDES_START
 #include "sentencepiece_processor.h"
 THIRD_PARTY_INCLUDES_END
 
-bool USentencePieceWrapper::LoadModel(const FString &ModelPath)
+bool USentencePieceWrapper::LoadFromAsset(USentencePieceModel* ModelAsset)
 {
-    // Clean up existing processor if any
-    if (ProcessorHandle)
+    if (!ModelAsset || ModelAsset->ModelData.Num() == 0)
     {
-        delete static_cast<sentencepiece::SentencePieceProcessor *>(ProcessorHandle);
-        ProcessorHandle = nullptr;
-    }
-
-    FString AbsPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ModelPath);
-
-    if (!FPaths::FileExists(AbsPath))
-    {
-        UE_LOG(LogTemp, Error, TEXT("SentencePiece Model not found at: %s"), *AbsPath);
+        UE_LOG(LogTemp, Error, TEXT("Invalid Model Asset"));
         return false;
     }
 
-    auto *Processor = new sentencepiece::SentencePieceProcessor();
+    // Clean up old processor
+    if (ProcessorHandle)
+    {
+        delete static_cast<sentencepiece::SentencePieceProcessor*>(ProcessorHandle);
+        ProcessorHandle = nullptr;
+    }
 
-    // Convert FString to std::string for the library
-    std::string PathStd = TCHAR_TO_UTF8(*AbsPath);
+    auto* Processor = new sentencepiece::SentencePieceProcessor();
 
-    const auto Status = Processor->Load(PathStd);
+    // SentencePiece supports loading from a "Serialized Proto" (which is what the .model file is)
+    // We convert the TArray<uint8> to a std::string_view or std::string
+    std::string Blob(
+        reinterpret_cast<const char*>(ModelAsset->ModelData.GetData()),
+        ModelAsset->ModelData.Num()
+    );
+
+    const auto Status = Processor->LoadFromSerializedProto(Blob);
 
     if (!Status.ok())
     {
-        UE_LOG(LogTemp, Error, TEXT("Failed to load SentencePiece model: %s"), UTF8_TO_TCHAR(Status.ToString().c_str()));
+        UE_LOG(LogTemp, Error, TEXT("Failed to load model from asset: %s"), UTF8_TO_TCHAR(Status.ToString().c_str()));
         delete Processor;
         return false;
     }
 
     ProcessorHandle = Processor;
+
+    // Optional: If you stored the JSON in the asset, load it here
+    // if (!ModelAsset->TokenizerConfigJson.IsEmpty()) { ... parsing logic ... }
+
     return true;
 }
 
