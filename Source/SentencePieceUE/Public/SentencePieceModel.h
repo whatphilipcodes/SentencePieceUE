@@ -5,7 +5,7 @@
 #include "SentencePieceModel.generated.h"
 
 /**
- * Represents a binary .model file imported into Unreal.
+ * Represents a binary .model file with specific tokenizer settings.
  */
 UCLASS(BlueprintType)
 class SENTENCEPIECEUE_API USentencePieceModel : public UObject
@@ -17,7 +17,23 @@ public:
     UPROPERTY()
     TArray<uint8> ModelData;
 
-    // Optional: Store the JSON config here too so you have one asset for both
-    UPROPERTY(EditAnywhere, Category = "Config", meta = (MultiLine = true))
-    FString TokenizerConfigJson;
+    // --- Configuration Options ---
+
+    /** * If true, the input text will be lowercased before tokenization.
+     * Matches HF config: "do_lower_case"
+     */
+    UPROPERTY(EditAnywhere, Category = "Config")
+    bool bDoLowerCase = false;
+
+    /** * If true, the Beginning of Sentence (BOS) token is prepended to the sequence.
+     * Matches HF config: "add_bos_token"
+     */
+    UPROPERTY(EditAnywhere, Category = "Config")
+    bool bAddBosToken = false;
+
+    /** * If true, the End of Sentence (EOS) token is appended to the sequence.
+     * Matches HF config: "add_eos_token"
+     */
+    UPROPERTY(EditAnywhere, Category = "Config")
+    bool bAddEosToken = false;
 };

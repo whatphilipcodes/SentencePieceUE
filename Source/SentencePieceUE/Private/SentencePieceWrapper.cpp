@@ -1,108 +1,104 @@
 #include "SentencePieceWrapper.h"
-#include "Misc/Paths.h"
-#include "HAL/PlatformFileManager.h"
+#include "SentencePieceModel.h" // <--- CRITICAL: Defines USentencePieceModel
+#include <string>               // <--- CRITICAL: Fixes 'string' is not a member of std
 
-// Include the library header inside the .cpp only
-// This prevents macro collisions (like 'check') with Unreal
+// --- Third Party Includes ---
 THIRD_PARTY_INCLUDES_START
 #include "sentencepiece_processor.h"
 THIRD_PARTY_INCLUDES_END
 
 bool USentencePieceWrapper::LoadFromAsset(USentencePieceModel* ModelAsset)
 {
-    if (!ModelAsset || ModelAsset->ModelData.Num() == 0)
+    // 1. Safety Checks
+    if (!ModelAsset)
     {
-        UE_LOG(LogTemp, Error, TEXT("Invalid Model Asset"));
+        UE_LOG(LogTemp, Error, TEXT("LoadFromAsset failed: Asset is null."));
         return false;
     }
 
-    // Clean up old processor
+    if (ModelAsset->ModelData.Num() == 0)
+    {
+        UE_LOG(LogTemp, Error, TEXT("LoadFromAsset failed: Asset has no binary data."));
+        return false;
+    }
+
+    // 2. Clean up old processor
     if (ProcessorHandle)
     {
         delete static_cast<sentencepiece::SentencePieceProcessor*>(ProcessorHandle);
         ProcessorHandle = nullptr;
     }
 
+    // 3. Initialize Processor
     auto* Processor = new sentencepiece::SentencePieceProcessor();
 
-    // SentencePiece supports loading from a "Serialized Proto" (which is what the .model file is)
-    // We convert the TArray<uint8> to a std::string_view or std::string
+    // Convert Unreal byte array to std::string for the library
+    // We cast the raw data pointer to char*
     std::string Blob(
         reinterpret_cast<const char*>(ModelAsset->ModelData.GetData()),
         ModelAsset->ModelData.Num()
     );
 
+    // Load from memory
     const auto Status = Processor->LoadFromSerializedProto(Blob);
 
     if (!Status.ok())
     {
-        UE_LOG(LogTemp, Error, TEXT("Failed to load model from asset: %s"), UTF8_TO_TCHAR(Status.ToString().c_str()));
+        UE_LOG(LogTemp, Error, TEXT("Failed to load model: %s"), UTF8_TO_TCHAR(Status.ToString().c_str()));
         delete Processor;
         return false;
     }
 
     ProcessorHandle = Processor;
 
-    // Optional: If you stored the JSON in the asset, load it here
-    // if (!ModelAsset->TokenizerConfigJson.IsEmpty()) { ... parsing logic ... }
+    // 4. Apply Config from Asset
+    bDoLowerCase = ModelAsset->bDoLowerCase;
+    bAddBosToken = ModelAsset->bAddBosToken;
+    bAddEosToken = ModelAsset->bAddEosToken;
+
+    // 5. Cache IDs
+    BosId = Processor->bos_id();
+    EosId = Processor->eos_id();
+
+    UE_LOG(LogTemp, Log, TEXT("SPM Loaded. LowerCase: %d, BOS: %d, EOS: %d"), bDoLowerCase, bAddBosToken, bAddEosToken);
 
     return true;
 }
 
-TArray<int32> USentencePieceWrapper::EncodeAsIds(const FString &InputText)
+TArray<int32> USentencePieceWrapper::EncodeAsIds(const FString& InputText)
 {
     TArray<int32> Result;
-    if (!ProcessorHandle)
-        return Result;
+    if (!ProcessorHandle) return Result;
 
-    auto *Processor = static_cast<sentencepiece::SentencePieceProcessor *>(ProcessorHandle);
-    std::string InputStd = TCHAR_TO_UTF8(*InputText);
+    // Apply Lowercase Config
+    FString ProcessedText = bDoLowerCase ? InputText.ToLower() : InputText;
+
+    auto* Processor = static_cast<sentencepiece::SentencePieceProcessor*>(ProcessorHandle);
+    std::string InputStd = TCHAR_TO_UTF8(*ProcessedText);
     std::vector<int> OutputIds;
 
     Processor->Encode(InputStd, &OutputIds);
 
-    Result.SetNum(OutputIds.size());
-    for (size_t i = 0; i < OutputIds.size(); ++i)
-    {
-        Result[i] = OutputIds[i];
-    }
+    // Apply BOS
+    if (bAddBosToken && BosId != -1) Result.Add(BosId);
+
+    // Body
+    for (int Id : OutputIds) Result.Add(Id);
+
+    // Apply EOS
+    if (bAddEosToken && EosId != -1) Result.Add(EosId);
 
     return Result;
 }
 
-TArray<FString> USentencePieceWrapper::EncodeAsPieces(const FString &InputText)
+FString USentencePieceWrapper::DecodeIds(const TArray<int32>& Ids)
 {
-    TArray<FString> Result;
-    if (!ProcessorHandle)
-        return Result;
+    if (!ProcessorHandle || Ids.Num() == 0) return FString();
 
-    auto *Processor = static_cast<sentencepiece::SentencePieceProcessor *>(ProcessorHandle);
-    std::string InputStd = TCHAR_TO_UTF8(*InputText);
-    std::vector<std::string> OutputPieces;
-
-    Processor->Encode(InputStd, &OutputPieces);
-
-    for (const auto &Piece : OutputPieces)
-    {
-        Result.Add(UTF8_TO_TCHAR(Piece.c_str()));
-    }
-
-    return Result;
-}
-
-FString USentencePieceWrapper::DecodeIds(const TArray<int32> &Ids)
-{
-    if (!ProcessorHandle || Ids.Num() == 0)
-        return FString();
-
-    auto *Processor = static_cast<sentencepiece::SentencePieceProcessor *>(ProcessorHandle);
+    auto* Processor = static_cast<sentencepiece::SentencePieceProcessor*>(ProcessorHandle);
 
     std::vector<int> InputIds;
-    InputIds.reserve(Ids.Num());
-    for (int32 Id : Ids)
-    {
-        InputIds.push_back(Id);
-    }
+    for (int32 Id : Ids) InputIds.push_back(Id);
 
     std::string OutputStd;
     Processor->Decode(InputIds, &OutputStd);
@@ -115,7 +111,7 @@ void USentencePieceWrapper::BeginDestroy()
     Super::BeginDestroy();
     if (ProcessorHandle)
     {
-        delete static_cast<sentencepiece::SentencePieceProcessor *>(ProcessorHandle);
+        delete static_cast<sentencepiece::SentencePieceProcessor*>(ProcessorHandle);
         ProcessorHandle = nullptr;
     }
 }
