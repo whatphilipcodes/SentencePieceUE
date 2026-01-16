@@ -1,6 +1,6 @@
 # Sentence Piece Unreal Plugin
 
-> simple plugin to make sentence piece tokenizations available in Unreal Engine
+> simple plugin to make the sentencepiece tokenizer available in Unreal Engine
 
 supported platforms:
 - MacOS 26 (Intel & ARM)
@@ -18,7 +18,7 @@ supported platforms:
 
 ### Installation
 
-1. Build sentencepiece lib for you platform manually
+1. Build the sentencepiece lib for your platform manually
    1. MacOS
       1. Make build script executable
          ```sh
@@ -33,4 +33,4 @@ supported platforms:
       ```sh
       ./Source/ThirdParty/BuildScripts/Build_Windows.bat
       ```
-2. 
+2. Build the plugin using UBT (should happen automatically if placed in the `/Plugins` directory)
